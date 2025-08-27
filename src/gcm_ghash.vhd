@@ -66,6 +66,8 @@ architecture arch_gcm_ghash of gcm_ghash is
     signal aad_cnt_q            : std_logic_vector((GCM_DATA_WIDTH_C / 2 - 3)-1 downto 0);
     signal aad_cnt_en           : std_logic;
 
+    signal y_init               : std_logic;
+    signal y_init_q             : std_logic;
     signal ct_val               : std_logic;
     signal ct_cnt_q             : std_logic_vector((GCM_DATA_WIDTH_C / 2 - 3)-1 downto 0);
     signal ct_cnt_en            : std_logic;
@@ -272,8 +274,22 @@ begin
     gf_x    <= x_data xor y_prev;
 
     --! Start/End of packet
-    sop     <= ghash_pkt_val_i and not(pkt_val_q);
+    sop     <= y_init    and not(y_init_q);
     eop     <= pkt_val_q and not(ghash_pkt_val_i);
+
+    --------------------------------------------------------------------------------
+    --! Trigger the initialisation of the ghash y value
+    --------------------------------------------------------------------------------
+    init_ghash_y_p : process(rst_i, clk_i)
+    begin
+        if(rst_i = '1') then
+            y_init_q <= '0';
+        elsif(rising_edge(clk_i)) then
+            y_init_q <= y_init;
+        end if;
+    end process;
+
+    y_init <= ghash_pkt_val_i and (aad_val or ct_val or y_init_q);
 
     --------------------------------------------------------------------------------
     --! Sample the ghash tag
