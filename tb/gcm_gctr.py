@@ -244,7 +244,7 @@ class gcm_gctr(object):
             key['n_bytes'] = 16
         elif self.config['aes_mode'] == AES_192:
             key['n_bytes'] = 24
-        else:
+        else: # has to be AES_256
             key['n_bytes'] = 32
 
         # Load the IV
@@ -275,10 +275,10 @@ class gcm_gctr(object):
         self.data['iv']  = iv
         self.data['key'] = key
 
-        # Generate random number of bytes for AAD and PT
+        # Set number of bytes for AAD and PT to the maximum allowd value
         for i in range(2):
-            n_bytes = int(random.betavariate(.1, .1) * self.config['max_n_byte'])
-            _bytes[_name[i]] = n_bytes
+            _bytes[_name[i]] = self.config['max_n_byte']
+
 
 
         # Override the AAD with the user data if provided
@@ -317,13 +317,8 @@ class gcm_gctr(object):
 
         self.data.update(_bytes)
 
-        # Create random delays: 5 bits
-        #   bit-0 : inserts a delay between the start of the packet and the first AAD data
-        #   bit-1 : inserts a delay between an AAD data and the next one
-        #   bit-2 : inserts a delay between the last AAD data and the first PT data
-        #   bit-3 : inserts a delay between a Data in and the next one
-        #   bit-4 : inserts a delay between the last Data in and the end of the packet
-        self.data['delays'] = random.randint(0, 31)
+        # Deactivate delays between the encryption steps
+        self.data['delays'] = 0
 
         # N.B. When decrypting, there cannot be an overlap of the AAD and the CT.
         #      AAD+CT is the stream of data that enters the GHASH.
